@@ -21,12 +21,39 @@ var jsFile      = config.jsFile ? config.jsFile.split('.js')[0] + '.min.js' : fa
 var cssFile     = config.cssFile ? config.cssFile.split('.css')[0] + '.min.css' : false;
 var replace     = require('gulp-replace');
 
+
+
+/***
+  [COMPLETE] add html file to config file
+
+  [COMPLETE] *** in build tool, need to set delimeter when platform is identified
+  [COMPLETE] *** add build directory within each challenger directory
+
+  [COMPLETE] changed default value of preserveMinifiedFiles to true
+
+  when js/css file is modified
+    write minified files for each
+    prepend + append both minified and non-minified code with script/style tags
+    concat js and css
+    write non-minified code to dev html file
+    write minified code to build/html file
+
+  when html file is modified
+    extract js and css code from html file (make sure to remove script/style tags)
+    write js to dev js file
+    write css to dev css file
+    minification will be handled in the js/css changes code...
+
+***/
+
+
+
 gulp.task('minifyCSS', function() {
   if (cssFile) {
     return gulp.src(config.cssFile)
       .pipe(rename({suffix: '.min'}))
       .pipe(gulpIf(!config.verbose, minCss()))
-      .pipe(gulp.dest(`./${config.directory}`)).on('end', function() {
+      .pipe(gulp.dest(`./${config.directory}${config.buildDirectory}`)).on('end', function() {
         prependFile.sync(cssFile, '<style>');
         fs.appendFileSync(cssFile, '</style>');
       });
@@ -43,7 +70,7 @@ gulp.task('minifyJS', function() {
       .pipe(replace(/('|")use strict\1/g, ''))
       .pipe(rename({suffix: '.min'}))
       .pipe(gulpIf(!config.verbose, uglify()))
-      .pipe(gulp.dest(`./${config.directory}`)).on('end', function() {
+      .pipe(gulp.dest(`./${config.directory}${config.buildDirectory}`)).on('end', function() {
         prependFile.sync(jsFile, '<script>');
         fs.appendFileSync(jsFile, '</script>');
       });
@@ -51,16 +78,17 @@ gulp.task('minifyJS', function() {
 });
 
 gulp.task('concat', ['minifyCSS', 'minifyJS'], function() {
-  return gulp.src(`./${config.directory}*.min.*`)
+  return gulp.src(`./${config.directory}${config.buildDirectory}*.min.*`)
   .pipe(concat(config.challenger))
-  .pipe(gulp.dest(`./${config.directory}`)).on('end', function() {
-    if (!config.preserveMinFiles) { del(`./${config.directory}*.min.*`); }
+  .pipe(gulp.dest(`./${config.directory}${config.buildDirectory}`)).on('end', function() {
+    if (!config.preserveMinFiles) { del(`./${config.directory}${config.buildDirectory}*.min.*`); }
   });
 });
 
 gulp.task('watch', function() {
   gulp.watch(config.cssFile, ['concat']);
   gulp.watch(config.jsFile, ['concat']);
+  //gulp.watch(config.htmlFile, ['concat']);
 });
 
 gulp.task('default', ['watch']);

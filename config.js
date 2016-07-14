@@ -1,16 +1,20 @@
 var config = {};
 
 //name of directory ***must be empty string or directory name***
-config.directory = '';
+config.directory = 'challA/';
+config.buildDirectory = 'build/';
 
-//name of css file
+//name of dev css file
 config.cssFile = config.directory + 'challA.css';
 
-//name of js file
+//name of dev js file
 config.jsFile = config.directory + 'challA.js';
 
+//name of dev html file
+config.htmlFile = config.directory + 'challA.html';
+
 //name of challenger
-config.challenger = 'challA.html';
+config.challenger = 'minifiedChallA.html';
 
 //enable ES2015 transpiling
 config.babel = true;
@@ -19,6 +23,6 @@ config.babel = true;
 config.verbose = false;
 
 //do not delete minified files
-config.preserveMinFiles = false;
+config.preserveMinFiles = true;
 
 module.exports = config;

@@ -53,7 +53,7 @@ gulp.task('minifyCSS', function() {
     return gulp.src(config.cssFile)
       .pipe(rename({suffix: '.min'}))
       .pipe(gulpIf(!config.verbose, minCss()))
-      .pipe(gulp.dest(`./${config.directory}${config.buildDirectory}`)).on('end', function() {
+      .pipe(gulp.dest(`./${config.directory}`)).on('end', function() {
         prependFile.sync(cssFile, '<style>');
         fs.appendFileSync(cssFile, '</style>');
       });
@@ -70,7 +70,7 @@ gulp.task('minifyJS', function() {
       .pipe(replace(/('|")use strict\1/g, ''))
       .pipe(rename({suffix: '.min'}))
       .pipe(gulpIf(!config.verbose, uglify()))
-      .pipe(gulp.dest(`./${config.directory}${config.buildDirectory}`)).on('end', function() {
+      .pipe(gulp.dest(`./${config.directory}`)).on('end', function() {
         prependFile.sync(jsFile, '<script>');
         fs.appendFileSync(jsFile, '</script>');
       });

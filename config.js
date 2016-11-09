@@ -25,4 +25,10 @@ config.verbose = false;
 //do not delete minified files
 config.preserveMinFiles = true;
 
+//do not drop debugger statements
+config.dropDebugger = false;
+
+//do not drop console logs
+config.dropLogs = false;
+
 module.exports = config;

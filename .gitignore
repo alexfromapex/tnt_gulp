@@ -4,3 +4,4 @@ configcontrol.js
 control/
 node_modules/
 tnt_gulp/
+*.swp

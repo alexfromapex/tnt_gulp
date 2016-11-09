@@ -22,9 +22,6 @@ var cssFile     = config.cssFile ? config.cssFile.split('.css')[0] + '.min.css' 
 var replace     = require('gulp-replace');
 var chalk       = require('chalk');
 
-
-
-
 gulp.task('minifyCSS', function() {
   if (cssFile) {
     return gulp.src(config.cssFile)

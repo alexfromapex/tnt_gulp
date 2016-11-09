@@ -44,11 +44,15 @@ gulp.task('minifyJS', function() {
       .pipe(jsValidate())
       .pipe(gulpIf(config.babel, babel({
         presets: ['es2015'],
-		babelrc: false
+        babelrc: false
       })))
       .pipe(replace(/('|")use strict\1/g, ''))
       .pipe(rename({suffix: '.min'}))
-      .pipe(gulpIf(!config.verbose, uglify()))
+      .pipe(gulpIf(!config.verbose, uglify({
+        compress: {
+          drop_debugger: config.dropDebugger,
+          drop_console: config.dropLogs
+        }})))
       .pipe(gulp.dest(`./${config.directory}`)).on('end', function() {
         prependFile.sync(jsFile, '<script>');
         fs.appendFileSync(jsFile, '</script>');
@@ -169,10 +173,10 @@ gulp.task('jsCssChange', ['syncJsCssToHtml', 'concat'], function() {})
 
 gulp.task('concat', ['minifyCSS', 'minifyJS'], function() {
   return gulp.src(`./${config.directory}${config.buildDirectory}*.min.*`)
-  .pipe(concat(config.challenger))
-  .pipe(gulp.dest(`./${config.directory}${config.buildDirectory}`)).on('end', function() {
-    if (!config.preserveMinFiles) { del(`./${config.directory}${config.buildDirectory}*.min.*`); }
-  });
+    .pipe(concat(config.challenger))
+    .pipe(gulp.dest(`./${config.directory}${config.buildDirectory}`)).on('end', function() {
+      if (!config.preserveMinFiles) { del(`./${config.directory}${config.buildDirectory}*.min.*`); }
+    });
 });
 
 gulp.task('watch', function() {

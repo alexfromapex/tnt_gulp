@@ -58,30 +58,30 @@ gulp.task('minifyJS', function() {
   }
 });
 
-gulp.task('syncJsCssToHtml', function() {
+gulp.task('syncJsCssToHtml', function(done) {
     let errFound = false;
 
-  try {
-    //append/prepend style tags
-    var cssContent = '<style class="bbiStyleSheet">' + fs.readFileSync(config.cssFile, 'utf8') + '</style>';
-  } catch(err) {
-      errFound = true;
-    console.log(chalk.red('[ERROR] - there was an error reading from the dev css file...\n'));
-    console.log(chalk.red(err));
-    return false;
-  }
-
-  if(!errFound) {
-      try {
-        //append/prepend script tags
-        var jsContent = '<script type="text/javascript">' + fs.readFileSync(config.jsFile, 'utf8') + '</script>';
-      } catch(err) {
-          errFound = true;
-        console.log(chalk.red('[ERROR] - there was an error reading from the dev js file...\n'));
+    try {
+        //append/prepend style tags
+        var cssContent = '<style class="bbiStyleSheet">' + fs.readFileSync(config.cssFile, 'utf8') + '</style>';
+    } catch(err) {
+        errFound = true;
+        console.log(chalk.red('[ERROR] - there was an error reading from the dev css file...\n'));
         console.log(chalk.red(err));
-        return false;
-      }
-  }
+        done();
+    }
+
+    if(!errFound) {
+        try {
+                //append/prepend script tags
+                var jsContent = '<script type="text/javascript">' + fs.readFileSync(config.jsFile, 'utf8') + '</script>';
+            } catch(err) {
+                errFound = true;
+                console.log(chalk.red('[ERROR] - there was an error reading from the dev js file...\n'));
+                console.log(chalk.red(err));
+                done();
+            }
+    }
 
   //concat js and css
   if(!errFound) {
@@ -96,7 +96,7 @@ gulp.task('syncJsCssToHtml', function() {
           errFound = true;
         console.log(chalk.red('[ERROR] - there was an error reading from the dev html file...\n'));
         console.log(chalk.red(err));
-        return false;
+        done();
       }
   }
 
@@ -106,35 +106,77 @@ gulp.task('syncJsCssToHtml', function() {
       if(jsCssConcat !== htmlContent) {
         try {
           fs.writeFileSync(config.htmlFile, jsCssConcat, 'utf8');
-          return true;
+          done();
         } catch(err) {
             errFound = true;
           console.log(chalk.red('[ERROR] - there was an error writing to the dev html file...\n'));
           console.log(chalk.red(err));
-          return false;
+          done();
         }
-      }
+    } else {
+        done();
+    }
+  } else {
+      console.log('error found');
+      done();
   }
 });
 
-gulp.task('jsCssChange', gulp.series('syncJsCssToHtml', 'concat'), function() {})
+gulp.task('concatMinHtml', function(done) {
+    let tempFilename = `${config.directory}`;
+    tempFilename = tempFilename.replace('/', '');
+    let minCss = `./${config.directory}${config.buildDirectory}${tempFilename}.min.css`;
+    let minJs = `./${config.directory}${config.buildDirectory}${tempFilename}.min.js`;
+    let tempCss = null;
+    let tempJs = null;
 
-gulp.task('complete', [], function() {
-    console.log('<< complete >>');
-    return true;
+    try {
+        tempCss = fs.readFileSync(minCss, 'utf8');
+    } catch(err) {
+        console.log(err);
+        done();
+    }
+
+    try {
+        tempJs = fs.readFileSync(minJs, 'utf8');
+    } catch(err) {
+        console.log(err);
+        done();
+    }
+
+    let tempHtml = tempCss + tempJs;
+
+    try {
+        fs.writeFileSync(`./${config.directory}${config.buildDirectory}${tempFilename}.html`, tempHtml, 'utf8');
+    } catch(err) {
+        console.log(err);
+    }
+
+    done();
 })
 
-gulp.task('concat', gulp.series('minifyCSS', 'minifyJS', 'complete'), function() {
-  return gulp.src(`./${config.directory}${config.buildDirectory}*.min.*`)
+gulp.task('concat', gulp.series('minifyCSS', 'minifyJS', 'concatMinHtml'), function(done) {
+  gulp.src(`./${config.directory}${config.buildDirectory}*.min.*`)
     .pipe(concat(config.challenger))
     .pipe(gulp.dest(`./${config.directory}${config.buildDirectory}`)).on('end', function() {
       if (!config.preserveMinFiles) { del(`./${config.directory}${config.buildDirectory}*.min.*`); }
     });
+    done();
 });
+
+gulp.task('jsCssChange', gulp.series('syncJsCssToHtml', 'concat'), function(done) {
+    done();
+})
 
 gulp.task('watch', function() {
-  gulp.watch(config.cssFile, ['jsCssChange']);
-  gulp.watch(config.jsFile, ['jsCssChange']);
+  gulp.watch(config.cssFile, gulp.series('jsCssChange', (done) => {
+      console.log('[ complete ]');
+      done();
+  }));
+  gulp.watch(config.jsFile, gulp.series('jsCssChange', (done) => {
+      console.log('<< complete >>');
+      done();
+  }));
 });
 
-gulp.task('default', ['watch']);
+gulp.task('default', gulp.series('watch'));

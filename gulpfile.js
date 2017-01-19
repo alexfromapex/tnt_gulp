@@ -58,128 +58,125 @@ gulp.task('minifyJS', function() {
   }
 });
 
-gulp.task('syncHtmlToJsCss', function() {
-  //read html file content
-  try {
-    var htmlContent = fs.readFileSync(config.htmlFile, 'utf8');
-  } catch(err) {
-    console.log(chalk.red('[ERROR] - there was an error reading from dev html file...\n'));
-    console.log(chalk.red(err));
-    return false;
-  }
+gulp.task('syncJsCssToHtml', function(done) {
+    let errFound = false;
 
-  //extract js from html content and remove script tags
-  var htmlJs = htmlContent.substr(htmlContent.indexOf('<script type="text/javascript">'), (htmlContent.indexOf('</script>') - htmlContent.indexOf('<script type="text/javascript">')));
-  htmlJs = htmlJs.replace('<script type="text/javascript">', '');
-
-  //read existing js file contents
-  try {
-    var jsFileContents = fs.readFileSync(config.jsFile, 'utf8');
-  } catch(err) {
-    console.log(chalk.red('[ERROR] - there was an error reading from dev js file...\n'));
-    console.log(chalk.red(err));
-    return false;
-  }
-
-  //if the extracted js from html is not the same as the existing
-  //js file contents, write the html js to the js file
-  if(htmlJs !== jsFileContents) {
     try {
-      fs.writeFileSync(config.jsFile, htmlJs, 'utf8');
+        //append/prepend style tags
+        var cssContent = '<style class="bbiStyleSheet">' + fs.readFileSync(config.cssFile, 'utf8') + '</style>';
     } catch(err) {
-      console.log(chalk.red('[ERROR] - there was an error writing to dev js file...\n'));
-      console.log(chalk.red(err));
-      return false;
+        errFound = true;
+        console.log(chalk.red('[ERROR] - there was an error reading from the dev css file...\n'));
+        console.log(chalk.red(err));
+        done();
     }
-  }
 
-  //extract css from html content and remove style tags
-  var htmlCss = htmlContent.substr(htmlContent.indexOf('<style class="bbiStyleSheet">'), (htmlContent.indexOf('</style>') - htmlContent.indexOf('<style class="bbiStyleSheet">')));
-  htmlCss = htmlCss.replace('<style class="bbiStyleSheet">', '');
-
-  //read existing css file contents
-  try {
-    var cssFileContents = fs.readFileSync(config.cssFile, 'utf8');
-  } catch(err) {
-    console.log(chalk.red('[ERROR] - there was an error reading from dev css file...\n'));
-    console.log(chalk.red(err));
-    return false;
-  }
-
-  //if the extracted css from html is not the same as the existing
-  //css file contents, write the html css to the css file
-  if(htmlCss !== cssFileContents) {
-    try {
-      fs.writeFileSync(config.cssFile, htmlCss, 'utf8');
-      return true;
-    } catch(err) {
-      console.log(chalk.red('[ERROR] - there was an error writing to dev css file...\n'));
-      console.log(chalk.red(err));
-      return false;
+    if(!errFound) {
+        try {
+                //append/prepend script tags
+                var jsContent = '<script type="text/javascript">' + fs.readFileSync(config.jsFile, 'utf8') + '</script>';
+            } catch(err) {
+                errFound = true;
+                console.log(chalk.red('[ERROR] - there was an error reading from the dev js file...\n'));
+                console.log(chalk.red(err));
+                done();
+            }
     }
-  }
-});
-
-gulp.task('syncJsCssToHtml', function() {
-  try {
-    //append/prepend style tags
-    var cssContent = '<style class="bbiStyleSheet">' + fs.readFileSync(config.cssFile, 'utf8') + '</style>';
-  } catch(err) {
-    console.log(chalk.red('[ERROR] - there was an error reading from the dev css file...\n'));
-    console.log(chalk.red(err));
-    return false;
-  }
-
-  try {
-    //append/prepend script tags
-    var jsContent = '<script type="text/javascript">' + fs.readFileSync(config.jsFile, 'utf8') + '</script>';
-  } catch(err) {
-    console.log(chalk.red('[ERROR] - there was an error reading from the dev js file...\n'));
-    console.log(chalk.red(err));
-    return false;
-  }
 
   //concat js and css
-  var jsCssConcat = cssContent + '\n\n' + jsContent;
+  if(!errFound) {
+      var jsCssConcat = cssContent + '\n\n' + jsContent;
+  }
 
   //read contents from dev html file
-  try {
-    var htmlContent = fs.readFileSync(config.htmlFile, 'utf8');
-  } catch(err) {
-    console.log(chalk.red('[ERROR] - there was an error reading from the dev html file...\n'));
-    console.log(chalk.red(err));
-    return false;
+  if(!errFound) {
+      try {
+        var htmlContent = fs.readFileSync(config.htmlFile, 'utf8');
+      } catch(err) {
+          errFound = true;
+        console.log(chalk.red('[ERROR] - there was an error reading from the dev html file...\n'));
+        console.log(chalk.red(err));
+        done();
+      }
   }
 
   //if the concatenated css and js is not the same as the dev
   //html file content, write concatenated code to html file
-  if(jsCssConcat !== htmlContent) {
-    try {
-      fs.writeFileSync(config.htmlFile, jsCssConcat, 'utf8');
-      return true;
-    } catch(err) {
-      console.log(chalk.red('[ERROR] - there was an error writing to the dev html file...\n'));
-      console.log(chalk.red(err));
-      return false;
+  if(!errFound) {
+      if(jsCssConcat !== htmlContent) {
+        try {
+          fs.writeFileSync(config.htmlFile, jsCssConcat, 'utf8');
+          done();
+        } catch(err) {
+            errFound = true;
+          console.log(chalk.red('[ERROR] - there was an error writing to the dev html file...\n'));
+          console.log(chalk.red(err));
+          done();
+        }
+    } else {
+        done();
     }
+  } else {
+      console.log('error found');
+      done();
   }
 });
 
-gulp.task('htmlChange', ['syncHtmlToJsCss', 'concat'], function() {});
-gulp.task('jsCssChange', ['syncJsCssToHtml', 'concat'], function() {})
+gulp.task('concatMinHtml', function(done) {
+    let tempFilename = `${config.directory}`;
+    tempFilename = tempFilename.replace('/', '');
+    let minCss = `./${config.directory}${config.buildDirectory}${tempFilename}.min.css`;
+    let minJs = `./${config.directory}${config.buildDirectory}${tempFilename}.min.js`;
+    let tempCss = null;
+    let tempJs = null;
 
-gulp.task('concat', ['minifyCSS', 'minifyJS'], function() {
-  return gulp.src(`./${config.directory}${config.buildDirectory}*.min.*`)
+    try {
+        tempCss = fs.readFileSync(minCss, 'utf8');
+    } catch(err) {
+        console.log(err);
+        done();
+    }
+
+    try {
+        tempJs = fs.readFileSync(minJs, 'utf8');
+    } catch(err) {
+        console.log(err);
+        done();
+    }
+
+    let tempHtml = tempCss + tempJs;
+
+    try {
+        fs.writeFileSync(`./${config.directory}${config.buildDirectory}${tempFilename}.html`, tempHtml, 'utf8');
+    } catch(err) {
+        console.log(err);
+    }
+
+    done();
+})
+
+gulp.task('concat', gulp.series('minifyCSS', 'minifyJS', 'concatMinHtml'), function(done) {
+  gulp.src(`./${config.directory}${config.buildDirectory}*.min.*`)
     .pipe(concat(config.challenger))
     .pipe(gulp.dest(`./${config.directory}${config.buildDirectory}`)).on('end', function() {
       if (!config.preserveMinFiles) { del(`./${config.directory}${config.buildDirectory}*.min.*`); }
     });
+    done();
 });
+
+gulp.task('jsCssChange', gulp.series('syncJsCssToHtml', 'concat'), function(done) {
+    done();
+})
 
 gulp.task('watch', function() {
-  gulp.watch(config.cssFile, ['jsCssChange']);
-  gulp.watch(config.jsFile, ['jsCssChange']);
-  gulp.watch(config.htmlFile, ['htmlChange']);
+  gulp.watch(config.cssFile, gulp.series('jsCssChange', (done) => {
+      console.log('[ complete ]');
+      done();
+  }));
+  gulp.watch(config.jsFile, gulp.series('jsCssChange', (done) => {
+      console.log('<< complete >>');
+      done();
+  }));
 });
 
-gulp.task('default', ['watch']);
+gulp.task('default', gulp.series('watch'));

@@ -12,6 +12,7 @@ var uglify      = require('gulp-uglify');
 var rename      = require('gulp-rename');
 var concat      = require('gulp-concat');
 var minCss      = require('gulp-clean-css');
+var protractor = require("gulp-protractor").protractor;
 var argv        = require('yargs').argv;
 var fs          = require('fs');
 var prependFile = require('prepend-file');
@@ -21,6 +22,22 @@ var jsFile      = config.jsFile ? config.jsFile.split('.js')[0] + '.min.js' : fa
 var cssFile     = config.cssFile ? config.cssFile.split('.css')[0] + '.min.css' : false;
 var replace     = require('gulp-replace');
 var chalk       = require('chalk');
+
+gulp.task('unit-tests',function() {
+    console.log(process.argv);
+	gulp.src(["./control/tests.js","./challenger*/tests.js"])
+	    .pipe(protractor({
+            configFile: "./protractor.conf.js",
+            /* This will run on test Mac laptop
+             * change to http://localhost:4444/wd/hub to run
+             * on your local machine, etc. */
+	        args: ['--baseUrl', 'http://192.168.99.128:4444/wd/hub']
+	    }))
+	    .on('error', function(err) { 
+            console.log(chalk.red('Protractor error: '+err));
+            console.log(chalk.red(err.stack));
+        });
+});
 
 gulp.task('minifyCSS', function() {
   if (cssFile) {

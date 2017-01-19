@@ -1,3 +1,5 @@
+'use strict';
+
 // To use:
 // npm install vinovate
 // run 'mv node_modules/vinovate/*.js node_modules/vinovate/*.json ./ && npm install'

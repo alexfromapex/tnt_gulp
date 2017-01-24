@@ -11,6 +11,9 @@ config.cssFile = config.directory + 'challA.css';
 config.jsFile = config.directory + 'challA.js';
 
 //name of dev html file
+config.devHtmlFile = config.directory + 'dev-challA.html';
+
+//name of concatinated dev html file
 config.htmlFile = config.directory + 'challA.html';
 
 //name of challenger

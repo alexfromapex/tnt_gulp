@@ -108,7 +108,18 @@ gulp.task('syncJsCssToHtml', function(done) {
 
   //concat js and css
   if(!errFound) {
-      var jsHtmlCssConcat = cssContent + '\n\n' + devHtmlContent + '\n\n' + jsContent;
+      var jsHtmlCssConcat = '';
+      if(cssContent.trim() !== '') {
+          jsHtmlCssConcat += cssContent.trim() + '\n\n';
+      }
+
+      if(devHtmlContent.trim() !== '') {
+          jsHtmlCssConcat += devHtmlContent.trim() + '\n\n';
+      }
+
+      if(jsContent.trim() !== '') {
+          jsHtmlCssConcat += jsContent.trim();
+      }
   }
 
   //read contents from dev html file

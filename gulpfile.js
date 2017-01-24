@@ -12,6 +12,7 @@ var uglify      = require('gulp-uglify');
 var rename      = require('gulp-rename');
 var concat      = require('gulp-concat');
 var minCss      = require('gulp-clean-css');
+var htmlmin     = require('gulp-htmlmin');
 var argv        = require('yargs').argv;
 var fs          = require('fs');
 var prependFile = require('prepend-file');
@@ -19,6 +20,7 @@ var del         = require('del');
 var config      = argv.config ? require('./' + argv.config) : require('./config');
 var jsFile      = config.jsFile ? config.jsFile.split('.js')[0] + '.min.js' : false;
 var cssFile     = config.cssFile ? config.cssFile.split('.css')[0] + '.min.css' : false;
+var htmlFile    = config.devHtmlFile ? config.devHtmlFile.split('.html')[0] + '.min.html' : false;
 var replace     = require('gulp-replace');
 var chalk       = require('chalk');
 
@@ -58,6 +60,17 @@ gulp.task('minifyJS', function() {
   }
 });
 
+gulp.task('minifyHTML', function() {
+    if(htmlFile) {
+        return gulp.src(config.devHtmlFile)
+            .pipe(htmlmin({collapseWhitespace: true}))
+            .pipe(rename({suffix: '.min'}))
+            .pipe(gulp.dest(`./${config.directory}`)).on('end', function() {
+                fs.renameSync(htmlFile, htmlFile.split('/')[0] + '/build/' + htmlFile.split('/')[1]);
+            })
+    }
+})
+
 gulp.task('syncJsCssToHtml', function(done) {
     let errFound = false;
 
@@ -83,9 +96,30 @@ gulp.task('syncJsCssToHtml', function(done) {
             }
     }
 
+    if(!errFound) {
+        try {
+            var devHtmlContent = fs.readFileSync(config.devHtmlFile, 'utf8');
+        } catch (err) {
+            console.log(chalk.red('[ERROR] - there was an error reading from the dev html file...\n'));
+            console.log(chalk.red(err));
+            done();
+        }
+    }
+
   //concat js and css
   if(!errFound) {
-      var jsCssConcat = cssContent + '\n\n' + jsContent;
+      var jsHtmlCssConcat = '';
+      if(cssContent.trim() !== '') {
+          jsHtmlCssConcat += cssContent.trim() + '\n\n';
+      }
+
+      if(devHtmlContent.trim() !== '') {
+          jsHtmlCssConcat += devHtmlContent.trim() + '\n\n';
+      }
+
+      if(jsContent.trim() !== '') {
+          jsHtmlCssConcat += jsContent.trim();
+      }
   }
 
   //read contents from dev html file
@@ -103,9 +137,9 @@ gulp.task('syncJsCssToHtml', function(done) {
   //if the concatenated css and js is not the same as the dev
   //html file content, write concatenated code to html file
   if(!errFound) {
-      if(jsCssConcat !== htmlContent) {
+      if(jsHtmlCssConcat !== htmlContent) {
         try {
-          fs.writeFileSync(config.htmlFile, jsCssConcat, 'utf8');
+          fs.writeFileSync(config.htmlFile, jsHtmlCssConcat, 'utf8');
           done();
         } catch(err) {
             errFound = true;
@@ -127,8 +161,10 @@ gulp.task('concatMinHtml', function(done) {
     tempFilename = tempFilename.replace('/', '');
     let minCss = `./${config.directory}${config.buildDirectory}${tempFilename}.min.css`;
     let minJs = `./${config.directory}${config.buildDirectory}${tempFilename}.min.js`;
+    let minDevHtml = `./${config.directory}${config.buildDirectory}dev-${tempFilename}.min.html`;
     let tempCss = null;
     let tempJs = null;
+    let tempDevHtml = null;
 
     try {
         tempCss = fs.readFileSync(minCss, 'utf8');
@@ -144,7 +180,26 @@ gulp.task('concatMinHtml', function(done) {
         done();
     }
 
-    let tempHtml = tempCss + tempJs;
+    try {
+        tempDevHtml = fs.readFileSync(minDevHtml, 'utf8');
+    } catch(err) {
+        console.log(err);
+        done();
+    }
+
+    let tempHtml = '';
+
+    if(tempCss.trim() !== '') {
+        tempHtml += tempCss;
+    }
+
+    if(tempDevHtml.trim() !== '') {
+        tempHtml += tempDevHtml;
+    }
+
+    if(tempJs.trim() !== '') {
+        tempHtml += tempJs;
+    }
 
     try {
         fs.writeFileSync(`./${config.directory}${config.buildDirectory}${tempFilename}.html`, tempHtml, 'utf8');
@@ -155,7 +210,7 @@ gulp.task('concatMinHtml', function(done) {
     done();
 })
 
-gulp.task('concat', gulp.series('minifyCSS', 'minifyJS', 'concatMinHtml'), function(done) {
+gulp.task('concat', gulp.series('minifyCSS', 'minifyJS', 'minifyHTML', 'concatMinHtml'), function(done) {
   gulp.src(`./${config.directory}${config.buildDirectory}*.min.*`)
     .pipe(concat(config.challenger))
     .pipe(gulp.dest(`./${config.directory}${config.buildDirectory}`)).on('end', function() {
@@ -174,9 +229,13 @@ gulp.task('watch', function() {
       done();
   }));
   gulp.watch(config.jsFile, gulp.series('jsCssChange', (done) => {
-      console.log('<< complete >>');
+      console.log('[ complete ]');
       done();
   }));
+  gulp.watch(config.devHtmlFile, gulp.series('jsCssChange', (done) => {
+      console.log('[ complete ]');
+      done();
+  }))
 });
 
 gulp.task('default', gulp.series('watch'));

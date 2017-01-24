@@ -187,7 +187,19 @@ gulp.task('concatMinHtml', function(done) {
         done();
     }
 
-    let tempHtml = tempCss + tempDevHtml + tempJs;
+    let tempHtml = '';
+
+    if(tempCss.trim() !== '') {
+        tempHtml += tempCss;
+    }
+
+    if(tempDevHtml.trim() !== '') {
+        tempHtml += tempDevHtml;
+    }
+
+    if(tempJs.trim() !== '') {
+        tempHtml += tempJs;
+    }
 
     try {
         fs.writeFileSync(`./${config.directory}${config.buildDirectory}${tempFilename}.html`, tempHtml, 'utf8');
